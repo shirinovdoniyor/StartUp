@@ -1,8 +1,5 @@
-from django.contrib import admin
 from django.urls import path
-
 from apps.views import hello_world_api_view, WorkshopListView, WorkshopDetailView, ReviewCreateView, WorkshopCreateView
-
 urlpatterns = [
     path('', hello_world_api_view),
     path('workshops/create/', WorkshopCreateView.as_view(), name='workshop-create'),  # Yangi
