@@ -11,57 +11,43 @@ def hello_world_api_view(request):
 
 
 
-# Workshop create API
-class WorkshopCreateView(generics.CreateAPIView):
-    queryset = Workshop.objects.all()
-    serializer_class = WorkshopSerializer
-
-# Workshop List + Search
-class WorkshopListView(generics.ListAPIView):
-    serializer_class = WorkshopSerializer
-
-    def get_queryset(self):
-        queryset = Workshop.objects.all()
-        q = self.request.GET.get('q', None)
-        if q:
-            queryset = queryset.filter(services__icontains=q)
-        return queryset
-
-
-# Workshop Detail
+# ----------------GET id bilan-------------------
 class WorkshopDetailView(generics.RetrieveAPIView):
     queryset = Workshop.objects.all()
     serializer_class = WorkshopSerializer
 
 
+# -------------------POST--------------------
+class WorkshopCreateView(generics.CreateAPIView):
+    queryset = Workshop.objects.all()
+    serializer_class = WorkshopSerializer
 
 
+
+# --------------GET+SEARCH---------------
 @api_view(['GET'])
 def workshop_list(request):
-    """
-    GET request bilan barcha ustaxonalarni olish va fuzzy filterlash:
-    ?location=Mirobot&services=diagnostika&min_rating=3
-    """
-    workshops = Workshop.objects.all()
+    from fuzzywuzzy import fuzz
 
-    # Location filter (fuzzy)
+    # ORMdan tartiblangan QuerySet → list
+    workshops = list(Workshop.objects.all().order_by('-premium', '-rating'))
+
+    # General q
+    q = request.GET.get('q')
+    if q:
+        workshops = [ws for ws in workshops if fuzz.partial_ratio(q.lower(), ws.services.lower()) > 80]
+
+    # Location
     location_query = request.GET.get('location')
     if location_query:
-        workshops = [
-            ws for ws in workshops
-            if fuzz.partial_ratio(location_query.lower(), ws.location.lower()) > 80
-        ]
+        workshops = [ws for ws in workshops if fuzz.partial_ratio(location_query.lower(), ws.location.lower()) > 80]
 
-    # Services filter (fuzzy)
+    # Services
     services_query = request.GET.get('services')
     if services_query:
-        workshops = [
-            ws for ws in workshops
-            if fuzz.partial_ratio(services_query.lower(), ws.services.lower()) > 80
-        ]
+        workshops = [ws for ws in workshops if fuzz.partial_ratio(services_query.lower(), ws.services.lower()) > 80]
 
-
-    # Minimum rating filter
+    # Minimum rating
     min_rating = request.GET.get('min_rating')
     if min_rating:
         try:
@@ -72,6 +58,3 @@ def workshop_list(request):
 
     serializer = WorkshopSerializer(workshops, many=True)
     return Response(serializer.data)
-
-
-
