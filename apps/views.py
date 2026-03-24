@@ -60,6 +60,7 @@ def workshop_list(request):
             if fuzz.partial_ratio(services_query.lower(), ws.services.lower()) > 80
         ]
 
+
     # Minimum rating filter
     min_rating = request.GET.get('min_rating')
     if min_rating:
@@ -74,7 +75,3 @@ def workshop_list(request):
 
 
 
-
-# Review Create
-class ReviewCreateView(generics.CreateAPIView):
-    serializer_class = ReviewSerializer
