@@ -16,6 +16,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = 'users.CustomUser'
 
 # Application definition
 
@@ -25,7 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'user',
+    'users',
     'django.contrib.admin',
     'rest_framework',
     'drf_spectacular',
@@ -45,7 +46,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-AUTH_USER_MODEL = 'user.CustomUser'
 
 ROOT_URLCONF = 'root.urls'
 
@@ -72,7 +72,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'startup_db',          # database nomi
-        'USER': 'startup_user',         # Postgres user
+        'USER': 'startup_user',         # Postgres users
         'PASSWORD': 'Doniyor0101?',     # parol
         'HOST': 'localhost',
         'PORT': '5433',

@@ -11,4 +11,5 @@ urlpatterns = [
 
     path("api/v1/", include('apps.urls')),
     path('api/v1/reviews/', include('reviews.urls')),
+    # path('api/v1/users/', include('users.urls')),
 ]
