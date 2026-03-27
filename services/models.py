@@ -1,6 +1,4 @@
 from django.db import models
-
-from django.db import models
 from apps.models import Workshop
 
 
@@ -20,8 +18,8 @@ class Service(models.Model):
 
 
 class WorkshopService(models.Model):
-    workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='workshop_services')
-    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='workshop_services')
+    workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='services')
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='workshops')
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
