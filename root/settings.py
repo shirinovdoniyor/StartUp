@@ -1,4 +1,4 @@
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -19,6 +19,9 @@ ALLOWED_HOSTS = []
 AUTH_USER_MODEL = 'users.CustomUser'
 
 # Application definition
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 INSTALLED_APPS = [
     'django.contrib.auth',
@@ -129,3 +132,6 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
 }
+
+ESKIZ_EMAIL = "shirinovdoniyorfx01@gmail.com"
+ESKIZ_PASSWORD = "Doniyor01???"

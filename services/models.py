@@ -8,14 +8,12 @@ class Problem(models.Model):
     def __str__(self):
         return self.name
 
-
 class Service(models.Model):
     name = models.CharField(max_length=255)
     problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name='services')
 
     def __str__(self):
         return self.name
-
 
 class WorkshopService(models.Model):
     workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='services')

@@ -1,12 +1,13 @@
+from django.db.models import Q
 from django.http import JsonResponse
 from drf_spectacular.utils import extend_schema
 
-from .serializer import WorkshopSerializer, ReviewSerializer
-from rest_framework import generics, status
+from .serializer import WorkshopSerializer
+from rest_framework import  status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Workshop
-from rapidfuzz import fuzz
+from .utils import get_coordinates
 @api_view(['GET'])
 def hello_world_api_view(request):
     return JsonResponse({"message": "helloworld"})
@@ -26,39 +27,59 @@ def workshop_detail(request, pk):
 
 # -------------------POST--------------------
 @extend_schema(
-    request=WorkshopSerializer,
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string'},
+                'owner_name': {'type': 'string'},
+                'address': {'type': 'string'},
+                'phone': {'type': 'string'},
+                'photo': {
+                    'type': 'string',
+                    'format': 'binary'
+                },
+                'opening_time': {'type': 'string'},
+                'closing_time': {'type': 'string'},
+            },
+            'required': ['name', 'owner_name', 'phone']
+        }
+    },
     responses=WorkshopSerializer
 )
 @api_view(['POST'])
 def workshop_create(request):
-    serializer = WorkshopSerializer(data=request.data)
+    data = request.data.copy()
+
+    address = data.get('address')
+
+    if address:
+        lat, lng = get_coordinates(address)
+        data['latitude'] = lat
+        data['longitude'] = lng
+        if lat is None:
+            return Response({"error": "Address not found"}, status=400)
+
+    serializer = WorkshopSerializer(data=data)
 
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 # --------------GET+SEARCH---------------
 @api_view(['GET'])
 def workshop_list(request):
     queryset = Workshop.objects.all().order_by('-premium', '-rating')
 
     q = request.GET.get('q')
-    location = request.GET.get('location')
     min_rating = request.GET.get('min_rating')
 
-    # 🔍 umumiy search
+    # 🔍 umumiy search (faqat name)
     if q:
         queryset = queryset.filter(
-            Q(name__icontains=q) |
-            Q(location__icontains=q)
+            Q(name__icontains=q)
         )
-
-    # 📍 location filter
-    if location:
-        queryset = queryset.filter(location__icontains=location)
 
     # ⭐ rating filter
     if min_rating:
@@ -69,8 +90,27 @@ def workshop_list(request):
 
     serializer = WorkshopSerializer(queryset, many=True)
     return Response(serializer.data)
+
+# -------------------PUT/PATCH----------------
+
 @extend_schema(
-    request=WorkshopSerializer,
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string'},
+                'owner_name': {'type': 'string'},
+                'address': {'type': 'string'},
+                'phone': {'type': 'string'},
+                'opening_time': {'type': 'string'},
+                'closing_time': {'type': 'string'},
+                'photo': {
+                    'type': 'string',
+                    'format': 'binary'  # 🔥 ENG MUHIM
+                },
+            }
+        }
+    },
     responses=WorkshopSerializer
 )
 @api_view(['PUT', 'PATCH'])
@@ -80,12 +120,19 @@ def workshop_update(request, pk):
     except Workshop.DoesNotExist:
         return Response({"error": "Not found"}, status=404)
 
-    # 🔥 muhim joy
+    data = request.data.copy()
+
+    # 🔥 address o‘zgarsa lat/lng yangilaymiz
+    if 'address' in data:
+        lat, lng = get_coordinates(data.get('address'))
+        data['latitude'] = lat
+        data['longitude'] = lng
+
     partial = request.method == 'PATCH'
 
     serializer = WorkshopSerializer(
         workshop,
-        data=request.data,
+        data=data,
         partial=partial
     )
 
@@ -94,7 +141,6 @@ def workshop_update(request, pk):
         return Response(serializer.data)
 
     return Response(serializer.errors, status=400)
-
 # -----------------DELETE-------------------
 @api_view(['DELETE'])
 def workshop_delete(request, pk):
