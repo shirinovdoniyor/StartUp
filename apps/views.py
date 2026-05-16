@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Q, Model
 from django.http import JsonResponse
 from drf_spectacular.utils import extend_schema
 
@@ -24,6 +24,18 @@ def workshop_detail(request, pk):
 
     serializer = WorkshopSerializer(workshop)
     return Response(serializer.data)
+
+
+
+# @api_view(['GET'])
+# def workshop_detail(request , pk):
+#     try :
+#         workshop=Workshop=Workshop.objects.get(id=pk):
+#     except Workshop.DoesNotExist:
+#         return Response({"error":"Workshop topilmadi"},status=404)
+#
+#     serializer=WorkshopSerializer(workshop)
+#     return Response(serializer.data)
 
 # -------------------POST--------------------
 @extend_schema(

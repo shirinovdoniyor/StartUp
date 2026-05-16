@@ -8,3 +8,4 @@ class Review(models.Model):
     rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at =models.DateTimeField(auto_now_add=True)

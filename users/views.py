@@ -34,7 +34,6 @@ def send_otp(request):
     if not phone:
         return Response({"error": "Phone required"}, status=400)
 
-    # eski OTPlarni o‘chiramiz
     OTP.objects.filter(phone=phone).delete()
 
     code = str(random.randint(100000, 999999))

@@ -7,6 +7,7 @@ from apps.models import Workshop
 from reviews.models import Review
 from reviews.serializer import ReviewSerializer
 # --------------GET------------------
+
 @api_view(['GET'])
 def list_reviews(request, workshop_id):
     try:
