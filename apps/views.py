@@ -26,7 +26,7 @@ def workshop_detail(request, pk):
     return Response(serializer.data)
 
 
-
+#
 # @api_view(['GET'])
 # def workshop_detail(request , pk):
 #     try :
@@ -54,31 +54,22 @@ def workshop_detail(request, pk):
                 'opening_time': {'type': 'string'},
                 'closing_time': {'type': 'string'},
             },
-            'required': ['name', 'owner_name', 'phone']
+            'required': ['name', 'owner_name', 'phone','address']
         }
     },
     responses=WorkshopSerializer
 )
 @api_view(['POST'])
 def workshop_create(request):
-    data = request.data.copy()
-
-    address = data.get('address')
-
-    if address:
-        lat, lng = get_coordinates(address)
-        data['latitude'] = lat
-        data['longitude'] = lng
-        if lat is None:
-            return Response({"error": "Address not found"}, status=400)
-
-    serializer = WorkshopSerializer(data=data)
+    serializer = WorkshopSerializer(data=request.data)
 
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 # --------------GET+SEARCH---------------
 @api_view(['GET'])
 def workshop_list(request):
