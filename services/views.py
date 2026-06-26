@@ -33,9 +33,8 @@ def search_services(request):
         return Response({"error": "Query required"}, status=400)
 
     queryset = WorkshopService.objects.filter(
-        Q(service__name__icontains=query) |
-        Q(service__problem__name__icontains=query)
-    ).select_related('workshop', 'service')
+        Q(service_name__icontains=query)
+    ).select_related('workshop')
 
     serializer = WorkshopServiceSerializer(queryset, many=True)
     data = serializer.data
@@ -62,7 +61,7 @@ def search_services(request):
 def workshop_services(request, workshop_id):
     queryset = WorkshopService.objects.filter(
         workshop_id=workshop_id
-    ).select_related('workshop', 'service')
+    ).select_related('workshop')
 
     if not queryset.exists():
         return Response([], status=200)

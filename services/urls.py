@@ -9,8 +9,8 @@ from .views import (
 
 urlpatterns = [
     path('workshop/services/create/', workshop_service_create),
-    path('workshop/<int:workshop_id>/services/', workshop_services),
-    path('workshop/services/<int:pk>/delete/', workshop_service_delete),
-    path('workshop/services/update/<int:pk>/', workshop_service_update),
+    path('workshop/<uuid:workshop_id>/services/', workshop_services),
+    path('workshop/services/<uuid:pk>/delete/', workshop_service_delete),
+    path('workshop/services/update/<uuid:pk>/', workshop_service_update),
     path('search/', search_services),
 ]

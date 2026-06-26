@@ -15,9 +15,9 @@ urlpatterns = [
     # workshops
     path('workshops/', workshop_list, name='workshop-list'),
     path('workshops/create/', workshop_create, name='workshop-create'),
-    path('workshops/<int:pk>/', workshop_detail, name='workshop-detail'),
-    path('workshops/<int:pk>/update/', workshop_update, name='workshop-update'),
-    path('workshops/<int:pk>/delete/', workshop_delete, name='workshop-delete'),
+    path('workshops/<uuid:pk>/', workshop_detail, name='workshop-detail'),
+    path('workshops/<uuid:pk>/update/', workshop_update, name='workshop-update'),
+    path('workshops/<uuid:pk>/delete/', workshop_delete, name='workshop-delete'),
     # workshop services
 
 ]
