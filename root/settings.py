@@ -12,7 +12,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-# ✅ TO'G'RILANDI: CustomUser → User (models.py dagi nom bilan mos)
 AUTH_USER_MODEL = 'users.User'
 
 MEDIA_URL = '/media/'
@@ -26,13 +25,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party
     'rest_framework',
-    'rest_framework_simplejwt',   # ✅ YANGI: JWT uchun
+    'rest_framework_simplejwt',
     'drf_spectacular',
 
-    # Local apps
-    'users',    # ✅ TO'G'RILANDI: ikki marta yozilgan edi, bittasi qoldi
+    'users',
     'apps',
     'reviews',
     'services',
@@ -86,7 +83,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Tashkent'   # ✅ TO'G'RILANDI: O'zbekiston vaqti
+TIME_ZONE = 'Asia/Tashkent'
 USE_I18N = True
 USE_TZ = True
 
@@ -95,37 +92,30 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ──────────────────────────────────────────────
-# DRF
-# ──────────────────────────────────────────────
+# DRF40
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
+   "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny"
     ],
-    # ✅ YANGI: JWT authentication
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-# ──────────────────────────────────────────────
-# JWT — ✅ YANGI BLOK
-# ──────────────────────────────────────────────
+# JWT
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
-    "ROTATE_REFRESH_TOKENS": True,        # refresh yangilanadi
+    "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# ──────────────────────────────────────────────
-# CACHE — ✅ YANGI BLOK (Eskiz token saqlash uchun)
-# ──────────────────────────────────────────────
+#──────────────────────────────────────────────
 CACHES = {
     "default": {
-        # Hozircha xotira cache (development uchun yetarli)
-        # Production uchun Redisga o'tkazing:
         #   "BACKEND": "django.core.cache.backends.redis.RedisCache",
         #   "LOCATION": "redis://127.0.0.1:6379/1",
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -134,7 +124,7 @@ CACHES = {
 
 # ──────────────────────────────────────────────
 # DRF SPECTACULAR
-# ──────────────────────────────────────────────
+
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Servis Project API',
     'DESCRIPTION': 'Servis project description',
@@ -142,9 +132,7 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# ────────────────────────────────────────pi──────
-# ESKIZ SMS — ✅ SENDER qo'shildi
-# ──────────────────────────────────────────────
-ESKIZ_EMAIL = "shirinovdoniyorfx01@gmail.com"
-ESKIZ_PASSWORD = "Doniyor01???"
-ESKIZ_SENDER = "4546"   # ✅ YANGI: utils.py settings.ESKIZ_SENDER ishlatadi
+
+ESKIZ_EMAIL = config("ESKIZ_EMAIL")
+ESKIZ_PASSWORD = config("ESKIZ_PASSWORD")
+ESKIZ_SENDER = config("ESKIZ_SENDER")
