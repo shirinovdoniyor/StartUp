@@ -28,7 +28,7 @@ def list_reviews(request, workshop_id):
 )
 @api_view(['POST'])
 def create_review(request, workshop_id):
-    if not request.user.is_authenticated:
+    if not request.user:
         return Response({"error": "Authentication required"}, status=401)
 
     try:

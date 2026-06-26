@@ -4,11 +4,15 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 from django.utils import timezone
 
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.db import models
+
 
 class UserManager(BaseUserManager):
     def create_user(self, phone, **extra_fields):
         if not phone:
             raise ValueError("Telefon raqam majburiy")
+
         user = self.model(phone=phone, **extra_fields)
         user.set_unusable_password()
         user.save(using=self._db)
@@ -17,6 +21,7 @@ class UserManager(BaseUserManager):
     def create_superuser(self, phone, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+
         user = self.model(phone=phone, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -26,9 +31,19 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone = models.CharField(max_length=20, unique=True)
+
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        default=""
+    )
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=timezone.now)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = []
@@ -41,8 +56,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = "Foydalanuvchi"
         verbose_name_plural = "Foydalanuvchilar"
-
-
 class OTP(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone = models.CharField(max_length=20)

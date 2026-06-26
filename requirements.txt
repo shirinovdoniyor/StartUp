@@ -19,6 +19,6 @@ types-PyYAML==6.0.12.20250915
 typing_extensions==4.15.0
 uritemplate==4.2.0
 python-decouple==3.8
-djangorestframework-simplejwt==5.0.0
+djangorestframework-simplejwt
 psycopg
 requests
