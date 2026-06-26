@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from decouple import config
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-9zdye)_2^5*nsny9(q$d+!+(z7ix8-9q^bhhxu^u320!gqhu2!'
+SECRET_KEY = config("SECRET_KEY")
 
 DEBUG = True
 
@@ -65,17 +67,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'root.wsgi.application'
 
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'startup_db',
-        'USER': 'startup_user',
-        'PASSWORD': 'Doniyor0101?',
-        'HOST': 'localhost',
-        'PORT': '5433',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT"),
     }
 }
-
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -140,7 +142,7 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# ──────────────────────────────────────────────
+# ────────────────────────────────────────pi──────
 # ESKIZ SMS — ✅ SENDER qo'shildi
 # ──────────────────────────────────────────────
 ESKIZ_EMAIL = "shirinovdoniyorfx01@gmail.com"
