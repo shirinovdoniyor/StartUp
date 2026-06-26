@@ -1,19 +1,116 @@
+from decimal import Decimal
+
 from rest_framework import serializers
-from .models import WorkshopService
+
+from apps.models import Workshop
+
+from .models import Problem, Service, WorkshopService
 
 
 class WorkshopServiceSerializer(serializers.ModelSerializer):
     workshop_name = serializers.CharField(source='workshop.name', read_only=True)
-    location = serializers.CharField(source='workshop.location', read_only=True)
+    service_name = serializers.CharField(source='service.name', read_only=True)
+    location = serializers.CharField(source='workshop.address', read_only=True)
     rating = serializers.FloatField(source='workshop.rating', read_only=True)
     premium = serializers.BooleanField(source='workshop.premium', read_only=True)
 
     class Meta:
         model = WorkshopService
         fields = [
+            'id',
             'workshop_name',
+            'service_name',
             'location',
             'price',
             'rating',
-            'premium'
+            'premium',
         ]
+
+
+class WorkshopServiceCreateSerializer(serializers.ModelSerializer):
+    workshop = serializers.PrimaryKeyRelatedField(queryset=Workshop.objects.all())
+    service_name = serializers.CharField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
+
+    class Meta:
+        model = WorkshopService
+        fields = ['id', 'workshop', 'service_name', 'price']
+
+    def validate_service_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Service nomi majburiy.')
+        return value
+
+    def validate(self, attrs):
+        workshop = attrs.get('workshop')
+        service_name = attrs.get('service_name')
+
+        problem = Problem.objects.filter(name__iexact='default').first()
+        if not problem:
+            problem = Problem.objects.create(name='default')
+
+        service = Service.objects.filter(name__iexact=service_name).first()
+        if not service:
+            service = Service.objects.create(name=service_name, problem=problem)
+
+        attrs['service_obj'] = service
+
+        if WorkshopService.objects.filter(workshop=workshop, service=service).exists():
+            raise serializers.ValidationError('Bu service ushbu workshopga oldin qo\'shilgan.')
+
+        return attrs
+
+    def create(self, validated_data):
+        service = validated_data.pop('service_obj')
+        validated_data.pop('service_name', None)
+        return WorkshopService.objects.create(service=service, **validated_data)
+
+
+class WorkshopServiceCreateResponseSerializer(serializers.ModelSerializer):
+    workshop_name = serializers.CharField(source='workshop.name', read_only=True)
+    service_name = serializers.CharField(source='service.name', read_only=True)
+
+    class Meta:
+        model = WorkshopService
+        fields = ['id', 'workshop_name', 'service_name', 'price']
+
+
+class WorkshopServiceUpdateSerializer(serializers.ModelSerializer):
+    service_name = serializers.CharField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
+
+    class Meta:
+        model = WorkshopService
+        fields = ['id', 'service_name', 'price']
+
+    def validate_service_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Service nomi majburiy.')
+        return value
+
+    def validate(self, attrs):
+        service_name = attrs.get('service_name')
+
+        problem = Problem.objects.filter(name__iexact='default').first()
+        if not problem:
+            problem = Problem.objects.create(name='default')
+
+        service = Service.objects.filter(name__iexact=service_name).first()
+        if not service:
+            service = Service.objects.create(name=service_name, problem=problem)
+
+        attrs['service_obj'] = service
+        return attrs
+
+    def update(self, instance, validated_data):
+        validated_data.pop('service_name', None)
+        service = validated_data.pop('service_obj', None)
+
+        if service is not None:
+            instance.service = service
+
+        instance.price = validated_data.get('price', instance.price)
+        instance.save()
+        return instance

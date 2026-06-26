@@ -18,4 +18,6 @@ urlpatterns = [
     path('workshops/<int:pk>/', workshop_detail, name='workshop-detail'),
     path('workshops/<int:pk>/update/', workshop_update, name='workshop-update'),
     path('workshops/<int:pk>/delete/', workshop_delete, name='workshop-delete'),
+    # workshop services
+
 ]
