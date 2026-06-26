@@ -1,0 +1,1 @@
+Project servis ustaxonalarida klient kelishini avtomatlashtirish haqida
