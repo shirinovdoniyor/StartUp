@@ -19,9 +19,6 @@ class WorkshopSerializer(serializers.ModelSerializer):
     )
     rating = serializers.FloatField(read_only=True)
     rating_count = serializers.IntegerField(read_only=True)
-    created_at = serializers.DateTimeField(read_only=True)
-    updated_at = serializers.DateTimeField(read_only=True)
-
     class Meta:
         model = Workshop
         fields = [
@@ -42,7 +39,6 @@ class WorkshopSerializer(serializers.ModelSerializer):
 
             'reviews',
             'created_at',
-            'updated_at',
 
             'address',
         ]

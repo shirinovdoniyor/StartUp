@@ -1,43 +1,39 @@
 import os
 from pathlib import Path
+from datetime import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-9zdye)_2^5*nsny9(q$d+!+(z7ix8-9q^bhhxu^u320!gqhu2!'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-AUTH_USER_MODEL = 'users.CustomUser'
+# ✅ TO'G'RILANDI: CustomUser → User (models.py dagi nom bilan mos)
+AUTH_USER_MODEL = 'users.User'
 
-# Application definition
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
 INSTALLED_APPS = [
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users',
-    'django.contrib.admin',
+
+    # Third-party
     'rest_framework',
+    'rest_framework_simplejwt',   # ✅ YANGI: JWT uchun
     'drf_spectacular',
+
+    # Local apps
+    'users',    # ✅ TO'G'RILANDI: ikki marta yozilgan edi, bittasi qoldi
     'apps',
     'reviews',
     'services',
-
-
 ]
 
 MIDDLEWARE = [
@@ -50,14 +46,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-
 ROOT_URLCONF = 'root.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -71,67 +65,84 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'root.wsgi.application'
 
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'startup_db',          # database nomi
-        'USER': 'startup_user',         # Postgres users
-        'PASSWORD': 'Doniyor0101?',     # parol
+        'NAME': 'startup_db',
+        'USER': 'startup_user',
+        'PASSWORD': 'Doniyor0101?',
         'HOST': 'localhost',
         'PORT': '5433',
     }
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Tashkent'   # ✅ TO'G'RILANDI: O'zbekiston vaqti
 USE_I18N = True
-
 USE_TZ = True
-
-
 
 STATIC_URL = 'static/'
 
-# ----------------DRF------------------
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ──────────────────────────────────────────────
+# DRF
+# ──────────────────────────────────────────────
 REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny"
+    ],
+    # ✅ YANGI: JWT authentication
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# ──────────────────────────────────────────────
+# JWT — ✅ YANGI BLOK
+# ──────────────────────────────────────────────
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ROTATE_REFRESH_TOKENS": True,        # refresh yangilanadi
+    "BLACKLIST_AFTER_ROTATION": False,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
+# ──────────────────────────────────────────────
+# CACHE — ✅ YANGI BLOK (Eskiz token saqlash uchun)
+# ──────────────────────────────────────────────
+CACHES = {
+    "default": {
+        # Hozircha xotira cache (development uchun yetarli)
+        # Production uchun Redisga o'tkazing:
+        #   "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        #   "LOCATION": "redis://127.0.0.1:6379/1",
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+# ──────────────────────────────────────────────
+# DRF SPECTACULAR
+# ──────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Servis Project API',
     'DESCRIPTION': 'Servis project description',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
-    # OTHER SETTINGS
 }
 
+# ──────────────────────────────────────────────
+# ESKIZ SMS — ✅ SENDER qo'shildi
+# ──────────────────────────────────────────────
 ESKIZ_EMAIL = "shirinovdoniyorfx01@gmail.com"
 ESKIZ_PASSWORD = "Doniyor01???"
+ESKIZ_SENDER = "4546"   # ✅ YANGI: utils.py settings.ESKIZ_SENDER ishlatadi

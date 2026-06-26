@@ -26,17 +26,6 @@ def workshop_detail(request, pk):
     return Response(serializer.data)
 
 
-#
-# @api_view(['GET'])
-# def workshop_detail(request , pk):
-#     try :
-#         workshop=Workshop=Workshop.objects.get(id=pk):
-#     except Workshop.DoesNotExist:
-#         return Response({"error":"Workshop topilmadi"},status=404)
-#
-#     serializer=WorkshopSerializer(workshop)
-#     return Response(serializer.data)
-
 # -------------------POST--------------------
 @extend_schema(
     request={
@@ -71,6 +60,8 @@ def workshop_create(request):
 
 
 # --------------GET+SEARCH---------------
+
+
 @api_view(['GET'])
 def workshop_list(request):
     queryset = Workshop.objects.all().order_by('-premium', '-rating')
@@ -109,7 +100,7 @@ def workshop_list(request):
                 'closing_time': {'type': 'string'},
                 'photo': {
                     'type': 'string',
-                    'format': 'binary'  # 🔥 ENG MUHIM
+                    'format': 'binary'
                 },
             }
         }
@@ -125,7 +116,6 @@ def workshop_update(request, pk):
 
     data = request.data.copy()
 
-    # 🔥 address o‘zgarsa lat/lng yangilaymiz
     if 'address' in data:
         lat, lng = get_coordinates(data.get('address'))
         data['latitude'] = lat
