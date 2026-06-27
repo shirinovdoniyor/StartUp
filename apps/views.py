@@ -1,13 +1,16 @@
 from django.db.models import Q, Model
 from django.http import JsonResponse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiRequest
+from rest_framework.parsers import MultiPartParser, FormParser
 
-from .serializer import WorkshopSerializer
+from .serializer import WorkshopSerializer, WorkshopPutSerializer, WorkshopPatchSerializer
 from rest_framework import  status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from .models import Workshop
 from .utils import get_coordinates
+
+
 @api_view(['GET'])
 def hello_world_api_view(request):
     return JsonResponse({"message": "helloworld"})
@@ -85,55 +88,88 @@ def workshop_list(request):
     serializer = WorkshopSerializer(queryset, many=True)
     return Response(serializer.data)
 
-# -------------------PUT/PATCH----------------
-
+# -------------------PUT--------------------
+@parser_classes([MultiPartParser, FormParser])
 @extend_schema(
-    request={
-        'multipart/form-data': {
-            'type': 'object',
-            'properties': {
-                'name': {'type': 'string'},
-                'owner_name': {'type': 'string'},
-                'address': {'type': 'string'},
-                'phone': {'type': 'string'},
-                'opening_time': {'type': 'string'},
-                'closing_time': {'type': 'string'},
-                'photo': {
-                    'type': 'string',
-                    'format': 'binary'
-                },
+    request=OpenApiRequest(
+        request=WorkshopPutSerializer,
+        encoding={
+            "photo": {
+                "contentType": "image/*"
             }
         }
-    },
-    responses=WorkshopSerializer
+    ),
+    responses=WorkshopPutSerializer,
 )
-@api_view(['PUT', 'PATCH'])
-def workshop_update(request, pk):
+@api_view(["PUT"])
+def workshop_put(request, pk):
     try:
-        workshop = Workshop.objects.get(id=pk)
+        workshop = Workshop.objects.get(pk=pk)
     except Workshop.DoesNotExist:
-        return Response({"error": "Not found"}, status=404)
+        return Response(
+            {"error": "Workshop not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     data = request.data.copy()
 
-    if 'address' in data:
-        lat, lng = get_coordinates(data.get('address'))
-        data['latitude'] = lat
-        data['longitude'] = lng
+    if "address" in data:
+        lat, lng = get_coordinates(data["address"])
+        data["latitude"] = lat
+        data["longitude"] = lng
 
-    partial = request.method == 'PATCH'
-
-    serializer = WorkshopSerializer(
+    serializer = WorkshopPutSerializer(
         workshop,
-        data=data,
-        partial=partial
+        data=data
     )
 
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
 
-    return Response(serializer.errors, status=400)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# -------------------------PATCH--------------------
+
+@parser_classes([MultiPartParser, FormParser])
+@extend_schema(
+    request=WorkshopPatchSerializer,
+    responses=WorkshopPutSerializer
+)
+@api_view(["PATCH"])
+def workshop_patch(request, pk):
+    try:
+        workshop = Workshop.objects.get(pk=pk)
+    except Workshop.DoesNotExist:
+        return Response(
+            {"error": "Workshop not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    data = request.data.copy()
+
+    if "address" in data:
+        lat, lng = get_coordinates(data["address"])
+        data["latitude"] = lat
+        data["longitude"] = lng
+
+    serializer = WorkshopPatchSerializer(
+        workshop,
+        data=data,
+        partial=True
+    )
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            WorkshopPutSerializer(workshop).data
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 # -----------------DELETE-------------------
 @api_view(['DELETE'])
 def workshop_delete(request, pk):

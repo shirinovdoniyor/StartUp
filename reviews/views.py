@@ -44,7 +44,6 @@ def create_review(request, workshop_id):
             user=request.user
         )
 
-        # ⭐ rating update
         workshop.rating_count += 1
         workshop.rating = (
             (workshop.rating * (workshop.rating_count - 1) + review.rating)
