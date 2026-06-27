@@ -7,7 +7,9 @@ from apps.models import Workshop
 from reviews.models import Review
 from reviews.serializer import ReviewSerializer
 # --------------GET------------------
-
+@extend_schema(
+    tags=["Reviews"],
+)
 @api_view(['GET'])
 def list_reviews(request, workshop_id):
     try:
@@ -22,7 +24,10 @@ def list_reviews(request, workshop_id):
 
 
 # --------------POST------------------
+
 @extend_schema(
+    tags=["Reviews"],
+
     request=ReviewSerializer,
     responses=ReviewSerializer
 )
@@ -57,6 +62,7 @@ def create_review(request, workshop_id):
 
 
 # --------------DELETE------------------
+@extend_schema(tags=["Reviews"],)
 @api_view(['DELETE'])
 def delete_review(request, review_id):
     try:

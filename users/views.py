@@ -38,6 +38,7 @@ def get_tokens_for_user(user) -> dict:
 #  SEND OTP
 # ──────────────────────────────────────────────────────────
 @extend_schema(
+    tags=["Authentication"],
     summary="OTP yuborish",
     request=inline_serializer(
         name="SendOTPRequest",
@@ -83,6 +84,7 @@ def send_otp(request):
 #  VERIFY OTP
 # ──────────────────────────────────────────────────────────
 @extend_schema(
+    tags=["Authentication"],
     summary="OTP tasdiqlash va login",
     request=inline_serializer(
         name="VerifyOTPRequest",
@@ -164,6 +166,8 @@ def verify_otp(request):
 
 
 @extend_schema(
+    tags=["Authentication"],
+
     responses=UserProfileSerializer,
     description="Get current user profile"
 )
@@ -179,6 +183,8 @@ def get_profile(request):
 # ----------------PATCH----------------
 
 @extend_schema(
+    tags=["Authentication"],
+
     request=UserProfileSerializer,
     responses=UserProfileSerializer,
     description="Update current user profile"

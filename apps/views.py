@@ -10,7 +10,9 @@ from rest_framework.response import Response
 from .models import Workshop
 from .utils import get_coordinates
 
-
+@extend_schema(
+    tags=["System"],
+)
 @api_view(['GET'])
 def hello_world_api_view(request):
     return JsonResponse({"message": "helloworld"})
@@ -18,6 +20,9 @@ def hello_world_api_view(request):
 
 
 # ----------------GET id bilan-------------------
+@extend_schema(
+    tags=["Workshops"],
+)
 @api_view(['GET'])
 def workshop_detail(request, pk):
     try:
@@ -31,6 +36,7 @@ def workshop_detail(request, pk):
 
 # -------------------POST--------------------
 @extend_schema(
+    tags=["Workshops"],
     request={
         'multipart/form-data': {
             'type': 'object',
@@ -64,7 +70,9 @@ def workshop_create(request):
 
 # --------------GET+SEARCH---------------
 
-
+@extend_schema(
+    tags=["Workshops"]
+)
 @api_view(['GET'])
 def workshop_list(request):
     queryset = Workshop.objects.all().order_by('-premium', '-rating')
@@ -91,6 +99,7 @@ def workshop_list(request):
 # -------------------PUT--------------------
 @parser_classes([MultiPartParser, FormParser])
 @extend_schema(
+    tags=["Workshops"],
     request=OpenApiRequest(
         request=WorkshopPutSerializer,
         encoding={
@@ -135,6 +144,7 @@ def workshop_put(request, pk):
 
 @parser_classes([MultiPartParser, FormParser])
 @extend_schema(
+    tags=["Workshops"],
     request=WorkshopPatchSerializer,
     responses=WorkshopPutSerializer
 )
@@ -171,6 +181,7 @@ def workshop_patch(request, pk):
 
 
 # -----------------DELETE-------------------
+@extend_schema(tags=["Workshops"],)
 @api_view(['DELETE'])
 def workshop_delete(request, pk):
     try:
