@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'apps',
     'reviews',
     'services',
+    'admin_panel'
 ]
 
 MIDDLEWARE = [
