@@ -1,5 +1,7 @@
-.venv
-.idea
+venv/
+env/
 __pycache__/
-*.py[cod]
+*.pyc
 .env
+media/
+staticfiles/
