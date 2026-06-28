@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from .serializer import UserProfileSerializer
 from .models import OTP
-from .utils import send_sms
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -39,6 +38,7 @@ def get_tokens_for_user(user) -> dict:
 #  SEND OTP
 # ──────────────────────────────────────────────────────────
 @extend_schema(
+    tags=["Authentication"],
     summary="OTP yuborish",
     request=inline_serializer(
         name="SendOTPRequest",
@@ -81,10 +81,10 @@ def send_otp(request):
     return Response({"message": "OTP yuborildi"})
 
 
-# ──────────────────────────────────────────────────────────
 #  VERIFY OTP
 # ──────────────────────────────────────────────────────────
 @extend_schema(
+    tags=["Authentication"],
     summary="OTP tasdiqlash va login",
     request=inline_serializer(
         name="VerifyOTPRequest",
@@ -149,6 +149,8 @@ def verify_otp(request):
             "name": ""
         }
     )
+    print(user)
+    print(is_new_user)
     tokens = get_tokens_for_user(user)
 
     return Response(
@@ -164,6 +166,8 @@ def verify_otp(request):
 
 
 @extend_schema(
+    tags=["Authentication"],
+
     responses=UserProfileSerializer,
     description="Get current user profile"
 )
@@ -179,6 +183,8 @@ def get_profile(request):
 # ----------------PATCH----------------
 
 @extend_schema(
+    tags=["Authentication"],
+
     request=UserProfileSerializer,
     responses=UserProfileSerializer,
     description="Update current user profile"

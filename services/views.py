@@ -1,3 +1,4 @@
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from rest_framework.decorators import api_view
@@ -16,10 +17,12 @@ from .serializer import (
 
 # -------------------------GET-------------------------
 @extend_schema(
+    tags=["Services"],
+
     parameters=[
         OpenApiParameter(
             name='q',
-            description='Search query (masalan: tormoz, engine)',
+            description='Query bilan qidiring (masalan: tormoz, motor)',
             required=True,
             type=str
         )
@@ -46,12 +49,14 @@ def search_services(request):
 
 # -------------------------GET workshop services-------------------------
 @extend_schema(
+    tags=["Services"],
+
     parameters=[
         OpenApiParameter(
             name='workshop_id',
             description='Workshop ID',
             required=True,
-            type=int,
+            type=OpenApiTypes.UUID,
             location=OpenApiParameter.PATH,
         )
     ],
@@ -72,6 +77,8 @@ def workshop_services(request, workshop_id):
 
 # -------------------------POST-------------------------
 @extend_schema(
+    tags=["Services"],
+
     request=WorkshopServiceCreateSerializer,
     responses=WorkshopServiceCreateResponseSerializer,
 )
@@ -92,6 +99,9 @@ def workshop_service_create(request):
 )
 
 # -------------------------Delete-------------------------
+@extend_schema(
+    tags=["Services"],
+)
 @api_view(['DELETE'])
 def workshop_service_delete(request, pk):
     try:
@@ -105,6 +115,8 @@ def workshop_service_delete(request, pk):
 
 # -------------------------PUT-------------------------
 @extend_schema(
+    tags=["Services"],
+
     request=WorkshopServiceUpdateSerializer,
     responses=WorkshopServiceSerializer,
 )
