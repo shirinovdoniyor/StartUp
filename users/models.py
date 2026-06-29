@@ -61,7 +61,7 @@ class OTP(models.Model):
     phone = models.CharField(max_length=20)
     code = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
-    attempts = models.PositiveSmallIntegerField(default=0)  # brute-force himoya
+    attempts = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         indexes = [models.Index(fields=["phone"])]
