@@ -4,6 +4,7 @@ from .views import (
     workshop_create,
     workshop_list,
     workshop_detail,
+    owner_dashboard,
     workshop_delete, workshop_put, workshop_patch,
 )
 
@@ -19,4 +20,5 @@ urlpatterns = [
     path('workshops/<uuid:pk>/patch/', workshop_patch, name='workshop-patch'),
 
     path('workshops/<uuid:pk>/delete/', workshop_delete, name='workshop-delete'),
+    path('workshops/owner/dashboard/', owner_dashboard, name='owner-dashboard'),
 ]

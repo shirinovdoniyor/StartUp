@@ -1,6 +1,7 @@
-from django.db.models import Q, Model
+from django.db.models import Q, Model, Avg
 from django.http import JsonResponse
-from drf_spectacular.utils import extend_schema, OpenApiRequest
+from drf_spectacular.utils import extend_schema, OpenApiRequest, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from .serializer import WorkshopSerializer, WorkshopPutSerializer, WorkshopPatchSerializer
@@ -9,6 +10,9 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from .models import Workshop
 from .utils import get_coordinates
+from services.models import WorkshopService
+from reviews.models import Review
+from users.models import User
 
 @extend_schema(
     tags=["System"],
@@ -191,3 +195,73 @@ def workshop_delete(request, pk):
 
     workshop.delete()
     return Response({"message": "Deleted successfully"}, status=204)
+
+
+@extend_schema(
+    tags=["Owners"],
+    summary="Owner Dashboard",
+    parameters=[
+        OpenApiParameter(
+            name="owner_id",
+            description="Owner ID to filter workshops",
+            required=False,
+            type=OpenApiTypes.UUID,
+        ),
+        OpenApiParameter(
+            name="phone",
+            description="Owner phone to filter workshops",
+            required=False,
+            type=OpenApiTypes.STR,
+        ),
+    ]
+)
+@api_view(["GET"])
+def owner_dashboard(request):
+    owner_id = request.GET.get("owner_id")
+    phone = request.GET.get("phone")
+
+    if not owner_id and not phone:
+        return Response({"error": "Provide owner_id or phone as query parameter"}, status=400)
+
+    if owner_id:
+        try:
+            user = User.objects.get(id=owner_id)
+        except User.DoesNotExist:
+            return Response({"error": "Owner not found"}, status=404)
+
+        if phone and phone != user.phone:
+            return Response({"error": "Provided phone does not match owner"}, status=403)
+
+        phone = user.phone
+
+    workshops = Workshop.objects.filter(phone=phone)
+
+    total_workshops = workshops.count()
+    total_services = WorkshopService.objects.filter(workshop__in=workshops).count()
+    total_reviews = Review.objects.filter(workshop__in=workshops).count()
+
+    average_rating = round(
+        workshops.aggregate(avg=Avg("rating"))["avg"] or 0,
+        1
+    )
+
+    workshop_list = []
+    for w in workshops:
+        workshop_list.append({
+            "id": str(w.id),
+            "name": w.name,
+            "rating": w.rating,
+            "rating_count": w.rating_count,
+            "services_count": w.services.count(),
+            "reviews_count": w.reviews.count(),
+        })
+
+    dashboard = {
+        "total_workshops": total_workshops,
+        "total_services": total_services,
+        "total_reviews": total_reviews,
+        "average_rating": average_rating,
+        "workshops": workshop_list,
+    }
+
+    return Response(dashboard)
