@@ -4,16 +4,17 @@ import logging
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import  inline_serializer
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from .serializer import UserProfileSerializer
 from .models import OTP
-
+from .sms import send_sms
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
 
 MAX_OTP_ATTEMPTS = 5  # Brute-force himoya
 
@@ -34,9 +35,8 @@ def get_tokens_for_user(user) -> dict:
         "access": str(refresh.access_token),
     }
 
-
-#  SEND OTP
-# ──────────────────────────────────────────────────────────
+# #  SEND OTP
+# # ──────────────────────────────────────────────────────────
 @extend_schema(
     tags=["Authentication"],
     summary="OTP yuborish",
@@ -51,36 +51,60 @@ def get_tokens_for_user(user) -> dict:
         )
     },
 )
+
 @api_view(["POST"])
 def send_otp(request):
+
     phone = request.data.get("phone", "").strip()
 
     if not phone:
-        return Response({"error": "Telefon raqam majburiy"}, status=400)
+        return Response(
+            {"error": "Telefon raqam majburiy"},
+            status=400
+        )
 
     if not is_valid_phone(phone):
         return Response(
-            {"error": "Noto'g'ri format. Masalan: +998901234567"}, status=400
+            {"error": "Telefon raqam formati noto'g'ri"},
+            status=400
         )
 
-    # Eski OTPlarni o'chirish
     OTP.objects.filter(phone=phone).delete()
 
-    # code = generate_otp_code()
-    code='1234'
-    OTP.objects.create(phone=phone, code=code)
+    code = generate_otp_code()
 
-    # message = f"Sizning tasdiqlash kodingiz: {code}\nUni hech kimga bermang."
+    OTP.objects.create(
+        phone=phone,
+        code=code,
+    )
     #
-    # try:
-    #     send_sms(phone, message)
-    # except Exception as e:
-    #     logger.error("OTP SMS xatosi [%s]: %s", phone, e)
-    #     return Response({"error": "SMS yuborilmadi. Keyinroq urinib ko'ring."}, status=503)
+    # message = (
+    #     f"Sizning tasdiqlash kodingiz: {code}.\n"
+    #     f"Uni hech kimga bermang."
+    # )
 
-    return Response({"message": "OTP yuborildi"})
+    print(f"OTP CODE: {phone} -> {code}")
 
+    message="Bu Eskiz dan test"
 
+    try:
+        result = send_sms(phone, message)
+
+        print(result)
+
+        return Response({
+            "message": "OTP muvaffaqiyatli yuborildi."
+        })
+
+    except Exception as e:
+        OTP.objects.filter(phone=phone).delete()
+
+        return Response(
+            {
+                "error": str(e)
+            },
+            status=500
+        )
 #  VERIFY OTP
 # ──────────────────────────────────────────────────────────
 @extend_schema(
@@ -98,69 +122,102 @@ def send_otp(request):
             name="VerifyOTPResponse",
             fields={
                 "message": serializers.CharField(),
+                "is_new_user": serializers.BooleanField(),
                 "access": serializers.CharField(),
                 "refresh": serializers.CharField(),
-                "is_new_user": serializers.BooleanField(),
             },
         )
     },
 )
 @api_view(["POST"])
 def verify_otp(request):
+
     phone = request.data.get("phone", "").strip()
     code = request.data.get("code", "").strip()
 
-    if not phone or not code:
-        return Response({"error": "Telefon va kod majburiy"}, status=400)
+    if not phone:
+        return Response(
+            {"error": "Telefon raqam majburiy."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not code:
+        return Response(
+            {"error": "OTP kod majburiy."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not is_valid_phone(phone):
+        return Response(
+            {"error": "Telefon raqam formati noto'g'ri."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         otp = OTP.objects.filter(phone=phone).latest("created_at")
+
     except OTP.DoesNotExist:
-        return Response({"error": "OTP topilmadi. Qayta yuborish kerak."}, status=400)
+        return Response(
+            {"error": "OTP topilmadi. Avval kod yuboring."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # OTP muddati tugaganmi
+    if otp.is_expired():
+        otp.delete()
+
+        return Response(
+            {"error": "OTP muddati tugagan. Qayta kod yuboring."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Brute-force himoya
     if otp.attempts >= MAX_OTP_ATTEMPTS:
-        OTP.objects.filter(phone=phone).delete()
+        otp.delete()
+
         return Response(
-            {"error": "Urinishlar soni oshib ketdi. Yangi OTP so'rang."}, status=429
+            {
+                "error": "Juda ko'p noto'g'ri urinish. Yangi OTP yuboring."
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
-    # Vaqt tekshiruvi
-    if otp.is_expired():
-        OTP.objects.filter(phone=phone).delete()
-        return Response({"error": "OTP muddati tugagan. Qayta yuborish kerak."}, status=400)
-
-    # Kod tekshiruvi
+    # Kod tekshirish
     if otp.code != code:
+
         otp.attempts += 1
         otp.save(update_fields=["attempts"])
+
         remaining = MAX_OTP_ATTEMPTS - otp.attempts
+
         return Response(
-            {"error": f"Noto'g'ri kod. {remaining} ta urinish qoldi."}, status=400
+            {
+                "error": f"Noto'g'ri OTP. {remaining} ta urinish qoldi."
+            },
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # OTPni o'chirish
-    OTP.objects.filter(phone=phone).delete()
+    # OTP to'g'ri
+    otp.delete()
 
-    # Foydalanuvchini yaratish yoki olish
     user, is_new_user = User.objects.get_or_create(
         phone=phone,
         defaults={
-            "name": ""
-        }
+            "name": "",
+        },
     )
-    print(user)
-    print(is_new_user)
+
     tokens = get_tokens_for_user(user)
 
     return Response(
         {
-            "message": "Muvaffaqiyatli kirildi",
+            "message": "Muvaffaqiyatli kirildi.",
             "is_new_user": is_new_user,
-            **tokens,
-        }
+            "access": tokens["access"],
+            "refresh": tokens["refresh"],
+        },
+        status=status.HTTP_200_OK,
     )
-
 # ----------------GET-------------
 
 
