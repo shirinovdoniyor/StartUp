@@ -5,12 +5,15 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q
 
-from .models import WorkshopService
+from .models import WorkshopService, Problem
 from .serializer import (
     WorkshopServiceSerializer,
     WorkshopServiceCreateSerializer,
     WorkshopServiceCreateResponseSerializer,
     WorkshopServiceUpdateSerializer,
+    ProblemSerializer,
+    ProblemCreateSerializer,
+    ProblemUpdateSerializer,
 )
 
 
@@ -134,3 +137,72 @@ def workshop_service_update(request, pk):
         return Response(WorkshopServiceSerializer(instance).data, status=200)
 
     return Response(serializer.errors, status=400)
+
+
+# ===================================
+# PROBLEM CRUD ENDPOINTS
+# ===================================
+
+@extend_schema(
+    tags=["Admin Problems"],
+    summary="List all problems",
+)
+@api_view(['GET'])
+def admin_problems_list(request):
+    problems = Problem.objects.all()
+    serializer = ProblemSerializer(problems, many=True)
+    return Response(serializer.data)
+
+
+@extend_schema(
+    tags=["Admin Problems"],
+    summary="Create a new problem",
+    request=ProblemCreateSerializer,
+    responses=ProblemSerializer,
+)
+@api_view(['POST'])
+def admin_problems_create(request):
+    serializer = ProblemCreateSerializer(data=request.data)
+
+    if serializer.is_valid():
+        problem = serializer.save()
+        return Response(ProblemSerializer(problem).data, status=201)
+
+    return Response(serializer.errors, status=400)
+
+
+@extend_schema(
+    tags=["Admin Problems"],
+    summary="Update a problem",
+    request=ProblemUpdateSerializer,
+    responses=ProblemSerializer,
+)
+@api_view(['PATCH'])
+def admin_problems_update(request, problem_id):
+    try:
+        problem = Problem.objects.get(id=problem_id)
+    except Problem.DoesNotExist:
+        return Response({"error": "Problem not found"}, status=404)
+
+    serializer = ProblemUpdateSerializer(problem, data=request.data, partial=True)
+
+    if serializer.is_valid():
+        problem = serializer.save()
+        return Response(ProblemSerializer(problem).data, status=200)
+
+    return Response(serializer.errors, status=400)
+
+
+@extend_schema(
+    tags=["Admin Problems"],
+    summary="Delete a problem",
+)
+@api_view(['DELETE'])
+def admin_problems_delete(request, problem_id):
+    try:
+        problem = Problem.objects.get(id=problem_id)
+    except Problem.DoesNotExist:
+        return Response({"error": "Problem not found"}, status=404)
+
+    problem.delete()
+    return Response({"message": "Problem deleted successfully"}, status=204)

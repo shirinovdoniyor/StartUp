@@ -198,6 +198,45 @@ def workshop_delete(request, pk):
 
 
 @extend_schema(
+    tags=["Workshops"],
+    summary="Workshop Statistics",
+)
+@api_view(["GET"])
+def workshop_statistics(request, pk):
+    try:
+        workshop = Workshop.objects.get(id=pk)
+    except Workshop.DoesNotExist:
+        return Response({"error": "Workshop not found"}, status=404)
+
+    services_count = workshop.services.count()
+    reviews_count = workshop.reviews.count()
+    average_rating = round(workshop.rating, 1)
+
+    return Response({
+        "services": services_count,
+        "reviews": reviews_count,
+        "average_rating": average_rating
+    })
+
+
+@extend_schema(
+    tags=["Workshops"],
+    summary="Top Rated Workshops",
+)
+@api_view(["GET"])
+def top_rated_workshops(request):
+    limit = request.GET.get('limit', 10)
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 10
+
+    workshops = Workshop.objects.all().order_by('-rating')[:limit]
+    serializer = WorkshopSerializer(workshops, many=True)
+    return Response(serializer.data)
+
+
+@extend_schema(
     tags=["Owners"],
     summary="Owner Dashboard",
     parameters=[
