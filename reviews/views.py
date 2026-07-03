@@ -1,4 +1,6 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -72,6 +74,78 @@ def delete_review(request, review_id):
 
     review.delete()
     return Response({"message": "Deleted"}, status=204)
+
+
+# ===================================
+# ADMIN REVIEWS ENDPOINTS
+# ===================================
+
+@extend_schema(
+    tags=["Admin Reviews"],
+    summary="List all reviews with filters",
+    parameters=[
+        OpenApiParameter(
+            name='rating',
+            description='Filter by rating (1-5)',
+            required=False,
+            type=OpenApiTypes.INT,
+        ),
+        OpenApiParameter(
+            name='workshop',
+            description='Filter by workshop ID (UUID)',
+            required=False,
+            type=OpenApiTypes.UUID,
+        ),
+        OpenApiParameter(
+            name='search',
+            description='Search in comment text',
+            required=False,
+            type=OpenApiTypes.STR,
+        ),
+    ]
+)
+@api_view(['GET'])
+def admin_reviews_list(request):
+    queryset = Review.objects.all().order_by('-created_at')
+
+    # Filter by rating
+    rating = request.GET.get('rating')
+    if rating:
+        try:
+            rating = int(rating)
+            if 1 <= rating <= 5:
+                queryset = queryset.filter(rating=rating)
+        except ValueError:
+            pass
+
+    # Filter by workshop
+    workshop_id = request.GET.get('workshop')
+    if workshop_id:
+        queryset = queryset.filter(workshop_id=workshop_id)
+
+    # Search in comments
+    search = request.GET.get('search')
+    if search:
+        queryset = queryset.filter(comment__icontains=search)
+
+    serializer = ReviewSerializer(queryset, many=True)
+    return Response(serializer.data)
+
+
+@extend_schema(
+    tags=["Admin Reviews"],
+    summary="Delete a review (admin)",
+)
+@api_view(['DELETE'])
+def admin_delete_review(request, review_id):
+    try:
+        review = Review.objects.get(id=review_id)
+    except Review.DoesNotExist:
+        return Response({"error": "Review not found"}, status=404)
+
+    review.delete()
+    return Response({"message": "Review deleted successfully"}, status=204)
+
 
 
 

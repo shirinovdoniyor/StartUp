@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from .serializer import UserProfileSerializer
 from .models import OTP
-from .sms import send_sms
+from .utils import send_sms
 logger = logging.getLogger(__name__)
 User = get_user_model()
 

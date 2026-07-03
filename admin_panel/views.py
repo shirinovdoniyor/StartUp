@@ -1,6 +1,6 @@
-
-
-from django.db.models import Avg, Q
+from django.db.models import Avg, Count, Q
+from django.utils import timezone
+from datetime import timedelta
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -26,27 +26,31 @@ from reviews.models import Review
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def admin_dashboard(request):
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
 
     dashboard = {
+        # User statistics
         "total_users": User.objects.count(),
-
-        "total_workshops": Workshop.objects.count(),
-
-        "premium_workshops": Workshop.objects.filter(
-            premium=True
+        "active_users": User.objects.filter(is_active=True).count(),
+        "new_users_today": User.objects.filter(
+            created_at__date=today
+        ).count(),
+        "new_users_this_month": User.objects.filter(
+            created_at__date__gte=month_start
         ).count(),
 
-        "total_services": WorkshopService.objects.count(),
-
-        "total_reviews": Review.objects.count(),
-
+        # Workshop statistics
+        "premium_workshops": Workshop.objects.filter(premium=True).count(),
+        "normal_workshops": Workshop.objects.filter(premium=False).count(),
         "average_rating": round(
-            Workshop.objects.aggregate(
-                average=Avg("rating")
-            )["average"] or 0,
+            Workshop.objects.aggregate(average=Avg("rating"))["average"] or 0,
             1
-
         ),
+
+        # Service and Review statistics
+        "total_services": WorkshopService.objects.count(),
+        "total_reviews": Review.objects.count(),
     }
 
     return Response(dashboard)
@@ -345,3 +349,57 @@ def admin_workshop_update(request, id):
         serializer.errors,
         status=status.HTTP_400_BAD_REQUEST
     )
+
+
+# ===================================
+# ADMIN SEARCH ENDPOINT
+# ===================================
+
+@extend_schema(
+    tags=["Admin"],
+    summary="Global Admin Search",
+    parameters=[
+        OpenApiParameter(
+            name='q',
+            description='Search query for users, workshops, and services',
+            required=True,
+            type=OpenApiTypes.STR,
+        ),
+    ]
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_search(request):
+    query = request.GET.get('q', '').strip()
+
+    if not query:
+        return Response({
+            "users": [],
+            "workshops": [],
+            "services": []
+        })
+
+    # Search users
+    users = User.objects.filter(
+        Q(name__icontains=query) | 
+        Q(phone__icontains=query)
+    ).values('id', 'phone', 'name')[:5]
+
+    # Search workshops
+    workshops = Workshop.objects.filter(
+        Q(name__icontains=query) | 
+        Q(address__icontains=query)
+    ).values('id', 'name', 'address', 'rating')[:5]
+
+    # Search services
+    services = WorkshopService.objects.filter(
+        Q(service_name__icontains=query)
+    ).select_related('workshop').values(
+        'id', 'service_name', 'workshop__name', 'price'
+    )[:5]
+
+    return Response({
+        "users": list(users),
+        "workshops": list(workshops),
+        "services": list(services),
+    })

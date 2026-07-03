@@ -4,7 +4,45 @@ from rest_framework import serializers
 
 from apps.models import Workshop
 
-from .models import WorkshopService
+from .models import WorkshopService, Problem
+
+
+class ProblemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Problem
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ProblemCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Problem
+        fields = ['name', 'description']
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Problem nomi majburiy.')
+        if Problem.objects.filter(name__iexact=value).exists():
+            raise serializers.ValidationError('Bu nom allaqachon mavjud.')
+        return value
+
+
+class ProblemUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Problem
+        fields = ['name', 'description']
+        partial = True
+
+    def validate_name(self, value):
+        if value:
+            value = value.strip()
+            if not value:
+                raise serializers.ValidationError('Problem nomi majburiy.')
+            # Check if name exists (excluding current instance)
+            if Problem.objects.filter(name__iexact=value).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError('Bu nom allaqachon mavjud.')
+        return value
 
 
 class WorkshopServiceSerializer(serializers.ModelSerializer):

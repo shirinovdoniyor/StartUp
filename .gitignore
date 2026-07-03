@@ -3,5 +3,3 @@
 __pycache__/
 *.py[cod]
 .env
-apps/__pycache__
-media/
