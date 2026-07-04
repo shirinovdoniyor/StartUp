@@ -35,8 +35,8 @@ def get_tokens_for_user(user) -> dict:
         "access": str(refresh.access_token),
     }
 
-# #  SEND OTP
-# # ──────────────────────────────────────────────────────────
+# #  ------------------SEND OTP----------------------
+
 @extend_schema(
     tags=["Authentication"],
     summary="OTP yuborish",
@@ -77,34 +77,27 @@ def send_otp(request):
         phone=phone,
         code=code,
     )
-    #
-    # message = (
-    #     f"Sizning tasdiqlash kodingiz: {code}.\n"
-    #     f"Uni hech kimga bermang."
-    # )
 
-    print(f"OTP CODE: {phone} -> {code}")
+    print("=" * 50)
+    print(f"OTP CODE -> {phone}: {code}")
+    print("=" * 50)
 
-    message="Bu Eskiz dan test"
+    # Eskiz bilan shartnoma qilgandan so'ng
+    # quyidagi kodni uncomment qilamiz va printni o'chiramiz
+
+    """
+    message = f"Sizning tasdiqlash kodingiz: {code}"
 
     try:
-        result = send_sms(phone, message)
-
-        print(result)
-
-        return Response({
-            "message": "OTP muvaffaqiyatli yuborildi."
-        })
-
+        send_sms(phone, message)
     except Exception as e:
         OTP.objects.filter(phone=phone).delete()
+        return Response({"error": str(e)}, status=500)
+    """
 
-        return Response(
-            {
-                "error": str(e)
-            },
-            status=500
-        )
+    return Response({
+        "message": "OTP muvaffaqiyatli yuborildi."
+    })
 #  VERIFY OTP
 # ──────────────────────────────────────────────────────────
 @extend_schema(
@@ -261,3 +254,126 @@ def update_profile(request):
         return Response(serializer.data)
 
     return Response(serializer.errors, status=400)
+
+
+
+# ---------------------_# POST /change-phone/send-otp/--------------------
+# POST /change-phone/send-otp/
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Change phone - Send OTP",
+    request=inline_serializer(
+        name="ChangePhoneRequest",
+        fields={
+            "new_phone": serializers.CharField()
+        }
+    ),
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_phone_send_otp(request):
+
+    new_phone = request.data.get("new_phone", "").strip()
+
+    if not new_phone:
+        return Response(
+            {"error": "Yangi telefon raqam majburiy"},
+            status=400
+        )
+
+    if not is_valid_phone(new_phone):
+        return Response(
+            {"error": "Telefon raqam noto'g'ri"},
+            status=400
+        )
+
+    if User.objects.filter(phone=new_phone).exists():
+        return Response(
+            {"error": "Bu telefon raqam allaqachon mavjud"},
+            status=400
+        )
+
+    OTP.objects.filter(phone=new_phone).delete()
+
+    code = generate_otp_code()
+
+    OTP.objects.create(
+        phone=new_phone,
+        code=code
+    )
+
+    message = f"Sizning tasdiqlash kodingiz: {code}"
+
+    send_sms(new_phone, message)
+
+    return Response({
+        "message": "OTP yuborildi"
+    })
+
+
+
+# --------------POST /change-phone/verify/-----------------
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Change phone - Verify OTP",
+    request=inline_serializer(
+        name="VerifyPhoneOTPRequest",
+        fields={
+            "new_phone": serializers.CharField(),
+            "code": serializers.CharField(),
+        }
+    ),
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_phone_verify(request):
+
+    new_phone = request.data.get("new_phone", "").strip()
+    code = request.data.get("code", "").strip()
+
+    if not new_phone or not code:
+        return Response(
+            {"error": "Barcha maydonlar majburiy"},
+            status=400
+        )
+
+    try:
+        otp = OTP.objects.filter(
+            phone=new_phone
+        ).latest("created_at")
+
+    except OTP.DoesNotExist:
+        return Response(
+            {"error": "OTP topilmadi"},
+            status=400
+        )
+
+    if otp.is_expired():
+        otp.delete()
+
+        return Response(
+            {"error": "OTP muddati tugagan"},
+            status=400
+        )
+
+    if otp.code != code:
+
+        otp.attempts += 1
+        otp.save()
+
+        return Response(
+            {"error": "Kod noto'g'ri"},
+            status=400
+        )
+
+    request.user.phone = new_phone
+    request.user.save(update_fields=["phone"])
+
+    otp.delete()
+
+    return Response({
+        "message": "Telefon raqam muvaffaqiyatli yangilandi."
+    })

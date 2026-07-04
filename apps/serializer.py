@@ -33,6 +33,9 @@ class WorkshopSerializer(serializers.ModelSerializer):
             'created_at',
 
             'address',
+            'latitude',
+            'longitude',
+
         ]
 
 
