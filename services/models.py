@@ -41,7 +41,7 @@ class Service(models.Model):
 
     updated_at = models.DateTimeField(
         auto_now=True,
-    ),
+    )
     
     description = models.TextField(
         blank=True,

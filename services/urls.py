@@ -7,7 +7,7 @@ from .problem_views import (
     problem_update,
     problem_delete,
 )
-
+from .search_views import find_workshops
 
 from .service_views import (
     service_list,
@@ -40,7 +40,8 @@ urlpatterns = [
     path( "workshop-services/create/",workshop_service_create,),
     path("workshop-services/<uuid:id>/update/",workshop_service_update,),
     path("workshop-services/<uuid:id>/delete/", workshop_service_delete,),
-    ]
+    path("workshops/find/",find_workshops,name="find_workshops",),
+]
 
 
 
