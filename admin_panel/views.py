@@ -7,12 +7,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
 
 from admin_panel.filters import AdminUserFilter
 from admin_panel.serializer import AdminUserSerializer, AdminUserUpdateSerializer, AdminWorkshopSerializer, \
     AdminWorkshopPatchSerializer
 from users.models import User
+from users.models import Notification
 from apps.models import Workshop
 from services.models import WorkshopService
 from reviews.models import Review
@@ -403,3 +405,36 @@ def admin_search(request):
         "workshops": list(workshops),
         "services": list(services),
     })
+
+
+@extend_schema(
+    tags=["Admin"],
+    summary="Send notification to all users",
+    request=inline_serializer(
+        name="BroadcastNotificationRequest",
+        fields={
+            "title": serializers.CharField(),
+            "message": serializers.CharField(),
+        },
+    ),
+)
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def admin_send_notification(request):
+    title = request.data.get("title", "").strip()
+    message = request.data.get("message", "").strip()
+
+    if not title or not message:
+        return Response({"error": "title and message are required"}, status=400)
+
+    users = User.objects.filter(is_active=True)
+    notifications = [
+        Notification(user=user, title=title, message=message)
+        for user in users
+    ]
+    Notification.objects.bulk_create(notifications)
+
+    return Response(
+        {"message": "Notification sent to all users", "count": len(notifications)},
+        status=201,
+    )

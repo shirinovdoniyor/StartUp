@@ -9,6 +9,7 @@ from .views import (
     admin_workshop_delete, 
     admin_workshop_update,
     admin_search,
+    admin_send_notification,
 )
 
 urlpatterns = [
@@ -24,5 +25,6 @@ urlpatterns = [
     
     # Admin search
     path("search/", admin_search),
+    path("notifications/send/", admin_send_notification, name="admin-send-notification"),
 ]
 

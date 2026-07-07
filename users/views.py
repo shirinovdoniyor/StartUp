@@ -9,8 +9,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
-from .serializer import UserProfileSerializer
-from .models import OTP
+from .serializer import UserProfileSerializer, NotificationSerializer
+from .models import OTP, Notification
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -161,6 +161,39 @@ def verify_otp(request):
         }
     )
 
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Logout",
+    request=inline_serializer(
+        name="LogoutRequest",
+        fields={
+            "refresh": serializers.CharField(),
+        },
+    ),
+    responses={
+        200: inline_serializer(
+            name="LogoutResponse",
+            fields={"message": serializers.CharField()},
+        )
+    },
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    refresh_token = request.data.get("refresh")
+
+    if not refresh_token:
+        return Response({"error": "Refresh token required"}, status=400)
+
+    try:
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+    except Exception:
+        return Response({"error": "Invalid or expired refresh token"}, status=400)
+
+    return Response({"message": "Logout successful"}, status=200)
+
 # ----------------GET-------------
 
 
@@ -204,3 +237,49 @@ def update_profile(request):
         return Response(serializer.data)
 
     return Response(serializer.errors, status=400)
+
+
+@extend_schema(
+    tags=["Notifications"],
+    summary="Get my notifications",
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_notifications(request):
+    notifications = request.user.notifications.all()
+    serializer = NotificationSerializer(notifications, many=True)
+    return Response(serializer.data)
+
+
+@extend_schema(
+    tags=["Notifications"],
+    summary="Mark notification as read",
+    request=None,
+)
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def read_notification(request, notification_id):
+    try:
+        notification = request.user.notifications.get(id=notification_id)
+    except Notification.DoesNotExist:
+        return Response({"error": "Notification not found"}, status=404)
+
+    notification.is_read = True
+    notification.save(update_fields=["is_read", "updated_at"])
+    return Response(NotificationSerializer(notification).data)
+
+
+@extend_schema(
+    tags=["Notifications"],
+    summary="Delete notification",
+)
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, notification_id):
+    try:
+        notification = request.user.notifications.get(id=notification_id)
+    except Notification.DoesNotExist:
+        return Response({"error": "Notification not found"}, status=404)
+
+    notification.delete()
+    return Response(status=204)
