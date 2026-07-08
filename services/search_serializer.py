@@ -9,6 +9,7 @@ class FindWorkshopRequestSerializer(serializers.Serializer):
         queryset=Problem.objects.all(),
     )
 
+
     latitude = serializers.FloatField(
         min_value=-90,
         max_value=90,
