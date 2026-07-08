@@ -40,6 +40,9 @@ Premium
 ↓
 
 Rating
+
+User problem ni tanlaydi kn beckend qaysi service turiga mos ekanligini topadi va 
+shu servicni workshopservices ichidan qidirib javob qaytaradi.
     """,
     request=None,
     responses={
