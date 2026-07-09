@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from .serializer import WorkshopSerializer, WorkshopPutSerializer, WorkshopPatchSerializer
-from rest_framework import  status
+from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from .models import Workshop
@@ -13,6 +13,7 @@ from .utils import get_coordinates
 from services.models import WorkshopService
 from reviews.models import Review
 from users.models import User
+
 
 @extend_schema(
     tags=["System"],
@@ -61,17 +62,37 @@ def workshop_detail(request, pk):
     },
     responses=WorkshopSerializer
 )
-@api_view(['POST'])
+@api_view(["POST"])
 def workshop_create(request):
+
     serializer = WorkshopSerializer(data=request.data)
 
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        latitude = serializer.validated_data.get("latitude")
+        longitude = serializer.validated_data.get("longitude")
 
+        # Frontend latitude va longitude yubormagan bo'lsa
+        if latitude is None or longitude is None:
 
+            latitude, longitude = get_coordinates(
+                serializer.validated_data["address"]
+            )
+
+        serializer.save(
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 # --------------GET+SEARCH---------------
 
 @extend_schema(

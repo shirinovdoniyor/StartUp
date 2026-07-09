@@ -1,26 +1,48 @@
 from django.urls import path
-from .views import (
-    search_services,
-    workshop_service_create,
-    workshop_service_delete,
-    workshop_service_update,
-    workshop_services,
-    admin_problems_list,
-    admin_problems_create,
-    admin_problems_update,
-    admin_problems_delete,
+
+from .problem_views import (
+    problem_list,
+    problem_detail,
+    problem_create,
+    problem_update,
+    problem_delete,
+)
+from .search_views import find_workshops
+
+from .service_views import (
+    service_list,
+    service_detail,
+    service_create,
+    service_update,
+    service_delete,
 )
 
+from .workshop_service_views import (
+    workshop_service_list,
+    workshop_service_detail,
+    workshop_service_create, workshop_service_update, workshop_service_delete,
+)
+
+
 urlpatterns = [
-    path('workshop/services/create/', workshop_service_create),
-    path('workshop/<uuid:workshop_id>/services/', workshop_services),
-    path('workshop/services/<uuid:pk>/delete/', workshop_service_delete),
-    path('workshop/services/update/<uuid:pk>/', workshop_service_update),
-    path('search/', search_services),
-    
-    # Admin Problems endpoints
-    path('admin/problems/', admin_problems_list),
-    path('admin/problems/create/', admin_problems_create),
-    path('admin/problems/<uuid:problem_id>/update/', admin_problems_update),
-    path('admin/problems/<uuid:problem_id>/delete/', admin_problems_delete),
+    path("problems/", problem_list),
+    path("problems/<uuid:id>/", problem_detail),
+    path("problems/create/", problem_create),
+    path("problems/<uuid:id>/update/", problem_update),
+    path("problems/<uuid:id>/delete/", problem_delete),
+    path("services/", service_list),
+    path("services/<uuid:id>/", service_detail),
+    path("services/create/", service_create),
+    path("services/<uuid:id>/update/", service_update),
+    path("services/<uuid:id>/delete/", service_delete),
+    path("workshop-services/",workshop_service_list,),
+    path("workshop-services/<uuid:id>/",workshop_service_detail,),
+    path( "workshop-services/create/",workshop_service_create,),
+    path("workshop-services/<uuid:id>/update/",workshop_service_update,),
+    path("workshop-services/<uuid:id>/delete/", workshop_service_delete,),
+    path("workshops/find/",find_workshops,name="find_workshops",),
 ]
+
+
+
+

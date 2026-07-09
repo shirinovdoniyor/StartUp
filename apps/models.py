@@ -16,6 +16,10 @@ class Workshop(models.Model):
     opening_time = models.TimeField(null=True, blank=True)
     closing_time = models.TimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True,)
+    longitude = models.FloatField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    is_active = models.BooleanField(default=True,)
 
     def __str__(self):
         return self.name

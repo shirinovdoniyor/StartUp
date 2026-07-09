@@ -421,6 +421,9 @@ def admin_search(request):
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
 def admin_send_notification(request):
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    
     title = request.data.get("title", "").strip()
     message = request.data.get("message", "").strip()
 
@@ -428,13 +431,33 @@ def admin_send_notification(request):
         return Response({"error": "title and message are required"}, status=400)
 
     users = User.objects.filter(is_active=True)
-    notifications = [
-        Notification(user=user, title=title, message=message)
-        for user in users
-    ]
-    Notification.objects.bulk_create(notifications)
+    channel_layer = get_channel_layer()
+    created_count = 0
+    
+    for user in users:
+        notification = Notification.objects.create(
+            user=user, 
+            title=title, 
+            message=message
+        )
+        created_count += 1
+        
+        # Broadcast via WebSocket
+        user_group_name = f"notifications_{user.id}"
+        async_to_sync(channel_layer.group_send)(
+            user_group_name,
+            {
+                "type": "notification_created",
+                "notification": {
+                    "id": str(notification.id),
+                    "title": notification.title,
+                    "message": notification.message,
+                    "created_at": notification.created_at.isoformat(),
+                },
+            },
+        )
 
     return Response(
-        {"message": "Notification sent to all users", "count": len(notifications)},
+        {"message": "Notification sent to all users", "count": created_count},
         status=201,
     )

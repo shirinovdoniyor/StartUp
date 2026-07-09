@@ -4,16 +4,17 @@ import logging
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import  inline_serializer
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
-from .serializer import UserProfileSerializer, NotificationSerializer
-from .models import OTP, Notification
-
+from .serializer import UserProfileSerializer
+from .models import OTP
+from .utils import send_sms
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
 
 MAX_OTP_ATTEMPTS = 5  # Brute-force himoya
 
@@ -34,9 +35,8 @@ def get_tokens_for_user(user) -> dict:
         "access": str(refresh.access_token),
     }
 
+# #  ------------------SEND OTP----------------------
 
-#  SEND OTP
-# ──────────────────────────────────────────────────────────
 @extend_schema(
     tags=["Authentication"],
     summary="OTP yuborish",
@@ -51,36 +51,53 @@ def get_tokens_for_user(user) -> dict:
         )
     },
 )
+
 @api_view(["POST"])
 def send_otp(request):
+
     phone = request.data.get("phone", "").strip()
 
     if not phone:
-        return Response({"error": "Telefon raqam majburiy"}, status=400)
+        return Response(
+            {"error": "Telefon raqam majburiy"},
+            status=400
+        )
 
     if not is_valid_phone(phone):
         return Response(
-            {"error": "Noto'g'ri format. Masalan: +998901234567"}, status=400
+            {"error": "Telefon raqam formati noto'g'ri"},
+            status=400
         )
 
-    # Eski OTPlarni o'chirish
     OTP.objects.filter(phone=phone).delete()
 
-    # code = generate_otp_code()
-    code='1234'
-    OTP.objects.create(phone=phone, code=code)
+    code = generate_otp_code()
 
-    # message = f"Sizning tasdiqlash kodingiz: {code}\nUni hech kimga bermang."
-    #
-    # try:
-    #     send_sms(phone, message)
-    # except Exception as e:
-    #     logger.error("OTP SMS xatosi [%s]: %s", phone, e)
-    #     return Response({"error": "SMS yuborilmadi. Keyinroq urinib ko'ring."}, status=503)
+    OTP.objects.create(
+        phone=phone,
+        code=code,
+    )
 
-    return Response({"message": "OTP yuborildi"})
+    print("=" * 50)
+    print(f"OTP CODE -> {phone}: {code}")
+    print("=" * 50)
 
+    # Eskiz bilan shartnoma qilgandan so'ng
+    # quyidagi kodni uncomment qilamiz va printni o'chiramiz
 
+    """
+    message = f"Sizning tasdiqlash kodingiz: {code}"
+
+    try:
+        send_sms(phone, message)
+    except Exception as e:
+        OTP.objects.filter(phone=phone).delete()
+        return Response({"error": str(e)}, status=500)
+    """
+
+    return Response({
+        "message": "OTP muvaffaqiyatli yuborildi."
+    })
 #  VERIFY OTP
 # ──────────────────────────────────────────────────────────
 @extend_schema(
@@ -98,102 +115,102 @@ def send_otp(request):
             name="VerifyOTPResponse",
             fields={
                 "message": serializers.CharField(),
+                "is_new_user": serializers.BooleanField(),
                 "access": serializers.CharField(),
                 "refresh": serializers.CharField(),
-                "is_new_user": serializers.BooleanField(),
             },
         )
     },
 )
 @api_view(["POST"])
 def verify_otp(request):
+
     phone = request.data.get("phone", "").strip()
     code = request.data.get("code", "").strip()
 
-    if not phone or not code:
-        return Response({"error": "Telefon va kod majburiy"}, status=400)
+    if not phone:
+        return Response(
+            {"error": "Telefon raqam majburiy."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not code:
+        return Response(
+            {"error": "OTP kod majburiy."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not is_valid_phone(phone):
+        return Response(
+            {"error": "Telefon raqam formati noto'g'ri."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         otp = OTP.objects.filter(phone=phone).latest("created_at")
+
     except OTP.DoesNotExist:
-        return Response({"error": "OTP topilmadi. Qayta yuborish kerak."}, status=400)
+        return Response(
+            {"error": "OTP topilmadi. Avval kod yuboring."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # OTP muddati tugaganmi
+    if otp.is_expired():
+        otp.delete()
+
+        return Response(
+            {"error": "OTP muddati tugagan. Qayta kod yuboring."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Brute-force himoya
     if otp.attempts >= MAX_OTP_ATTEMPTS:
-        OTP.objects.filter(phone=phone).delete()
+        otp.delete()
+
         return Response(
-            {"error": "Urinishlar soni oshib ketdi. Yangi OTP so'rang."}, status=429
+            {
+                "error": "Juda ko'p noto'g'ri urinish. Yangi OTP yuboring."
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
-    # Vaqt tekshiruvi
-    if otp.is_expired():
-        OTP.objects.filter(phone=phone).delete()
-        return Response({"error": "OTP muddati tugagan. Qayta yuborish kerak."}, status=400)
-
-    # Kod tekshiruvi
+    # Kod tekshirish
     if otp.code != code:
+
         otp.attempts += 1
         otp.save(update_fields=["attempts"])
+
         remaining = MAX_OTP_ATTEMPTS - otp.attempts
+
         return Response(
-            {"error": f"Noto'g'ri kod. {remaining} ta urinish qoldi."}, status=400
+            {
+                "error": f"Noto'g'ri OTP. {remaining} ta urinish qoldi."
+            },
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # OTPni o'chirish
-    OTP.objects.filter(phone=phone).delete()
+    # OTP to'g'ri
+    otp.delete()
 
-    # Foydalanuvchini yaratish yoki olish
     user, is_new_user = User.objects.get_or_create(
         phone=phone,
         defaults={
-            "name": ""
-        }
+            "name": "",
+        },
     )
-    print(user)
-    print(is_new_user)
+
     tokens = get_tokens_for_user(user)
 
     return Response(
         {
-            "message": "Muvaffaqiyatli kirildi",
+            "message": "Muvaffaqiyatli kirildi.",
             "is_new_user": is_new_user,
-            **tokens,
-        }
-    )
-
-
-@extend_schema(
-    tags=["Authentication"],
-    summary="Logout",
-    request=inline_serializer(
-        name="LogoutRequest",
-        fields={
-            "refresh": serializers.CharField(),
+            "access": tokens["access"],
+            "refresh": tokens["refresh"],
         },
-    ),
-    responses={
-        200: inline_serializer(
-            name="LogoutResponse",
-            fields={"message": serializers.CharField()},
-        )
-    },
-)
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def logout(request):
-    refresh_token = request.data.get("refresh")
-
-    if not refresh_token:
-        return Response({"error": "Refresh token required"}, status=400)
-
-    try:
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-    except Exception:
-        return Response({"error": "Invalid or expired refresh token"}, status=400)
-
-    return Response({"message": "Logout successful"}, status=200)
-
+        status=status.HTTP_200_OK,
+    )
 # ----------------GET-------------
 
 
@@ -239,47 +256,241 @@ def update_profile(request):
     return Response(serializer.errors, status=400)
 
 
+
+# ---------------------_# POST /change-phone/send-otp/--------------------
+# POST /change-phone/send-otp/
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Change phone - Send OTP",
+    request=inline_serializer(
+        name="ChangePhoneRequest",
+        fields={
+            "new_phone": serializers.CharField()
+        }
+    ),
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_phone_send_otp(request):
+
+    new_phone = request.data.get("new_phone", "").strip()
+
+    if not new_phone:
+        return Response(
+            {"error": "Yangi telefon raqam majburiy"},
+            status=400
+        )
+
+    if not is_valid_phone(new_phone):
+        return Response(
+            {"error": "Telefon raqam noto'g'ri"},
+            status=400
+        )
+
+    if User.objects.filter(phone=new_phone).exists():
+        return Response(
+            {"error": "Bu telefon raqam allaqachon mavjud"},
+            status=400
+        )
+
+    OTP.objects.filter(phone=new_phone).delete()
+
+    code = generate_otp_code()
+
+    OTP.objects.create(
+        phone=new_phone,
+        code=code
+    )
+
+    message = f"Sizning tasdiqlash kodingiz: {code}"
+
+    send_sms(new_phone, message)
+
+    return Response({
+        "message": "OTP yuborildi"
+    })
+
+
+
+# --------------POST /change-phone/verify/-----------------
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Change phone - Verify OTP",
+    request=inline_serializer(
+        name="VerifyPhoneOTPRequest",
+        fields={
+            "new_phone": serializers.CharField(),
+            "code": serializers.CharField(),
+        }
+    ),
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_phone_verify(request):
+
+    new_phone = request.data.get("new_phone", "").strip()
+    code = request.data.get("code", "").strip()
+
+    if not new_phone or not code:
+        return Response(
+            {"error": "Barcha maydonlar majburiy"},
+            status=400
+        )
+
+    try:
+        otp = OTP.objects.filter(
+            phone=new_phone
+        ).latest("created_at")
+
+    except OTP.DoesNotExist:
+        return Response(
+            {"error": "OTP topilmadi"},
+            status=400
+        )
+
+    if otp.is_expired():
+        otp.delete()
+
+        return Response(
+            {"error": "OTP muddati tugagan"},
+            status=400
+        )
+
+    if otp.code != code:
+
+        otp.attempts += 1
+        otp.save()
+
+        return Response(
+            {"error": "Kod noto'g'ri"},
+            status=400
+        )
+
+    request.user.phone = new_phone
+    request.user.save(update_fields=["phone"])
+
+    otp.delete()
+
+    return Response({
+        "message": "Telefon raqam muvaffaqiyatli yangilandi."
+    })
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Logout user",
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    refresh = request.data.get("refresh")
+    if refresh:
+        try:
+            RefreshToken(refresh).blacklist()
+        except Exception:
+            # Blacklist may not be enabled; ignore errors
+            pass
+
+    return Response({"message": "Successfully logged out."})
+
+
+# ==================== NOTIFICATIONS ====================
+
 @extend_schema(
     tags=["Notifications"],
-    summary="Get my notifications",
+    summary="Get all unread notifications",
+    responses={
+        200: inline_serializer(
+            name="NotificationListResponse",
+            fields={
+                "count": serializers.IntegerField(),
+                "notifications": serializers.ListField(
+                    child=inline_serializer(
+                        name="NotificationItem",
+                        fields={
+                            "id": serializers.CharField(),
+                            "title": serializers.CharField(),
+                            "message": serializers.CharField(),
+                            "created_at": serializers.DateTimeField(),
+                        }
+                    )
+                ),
+            },
+        )
+    },
 )
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def list_notifications(request):
-    notifications = request.user.notifications.all()
-    serializer = NotificationSerializer(notifications, many=True)
-    return Response(serializer.data)
+def get_notifications(request):
+    """Get all unread notifications for current user."""
+    notifications = request.user.notifications.filter(is_read=False).order_by("-created_at")
+    data = [
+        {
+            "id": str(n.id),
+            "title": n.title,
+            "message": n.message,
+            "created_at": n.created_at,
+        }
+        for n in notifications
+    ]
+    return Response({
+        "count": notifications.count(),
+        "notifications": data,
+    })
 
 
 @extend_schema(
     tags=["Notifications"],
-    summary="Mark notification as read",
-    request=None,
+    summary="Mark notification as read (deletes it)",
+    responses={200: inline_serializer(
+        name="NotificationReadResponse",
+        fields={"message": serializers.CharField()},
+    )},
 )
-@api_view(["PATCH"])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def read_notification(request, notification_id):
+def mark_notification_read(request, notification_id):
+    """Mark notification as read and delete it."""
+    from .models import Notification
     try:
-        notification = request.user.notifications.get(id=notification_id)
+        notification = Notification.objects.get(
+            id=notification_id,
+            user=request.user,
+        )
+        notification.delete()
+        return Response({"message": "Notification deleted."})
     except Notification.DoesNotExist:
-        return Response({"error": "Notification not found"}, status=404)
-
-    notification.is_read = True
-    notification.save(update_fields=["is_read", "updated_at"])
-    return Response(NotificationSerializer(notification).data)
+        return Response(
+            {"error": "Notification not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
 
 @extend_schema(
     tags=["Notifications"],
-    summary="Delete notification",
+    summary="Delete a notification",
+    responses={200: inline_serializer(
+        name="NotificationDeleteResponse",
+        fields={"message": serializers.CharField()},
+    )},
 )
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def delete_notification(request, notification_id):
+    """Delete a notification."""
+    from .models import Notification
     try:
-        notification = request.user.notifications.get(id=notification_id)
+        notification = Notification.objects.get(
+            id=notification_id,
+            user=request.user,
+        )
+        notification.delete()
+        return Response({"message": "Notification deleted."})
     except Notification.DoesNotExist:
-        return Response({"error": "Notification not found"}, status=404)
-
-    notification.delete()
-    return Response(status=204)
+        return Response(
+            {"error": "Notification not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
