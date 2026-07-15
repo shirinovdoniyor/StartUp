@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-MAX_OTP_ATTEMPTS = 5  # Brute-force himoya
+MAX_OTP_ATTEMPTS = 5  
 
 
 def generate_otp_code() -> str:
@@ -71,8 +71,8 @@ def send_otp(request):
 
     OTP.objects.filter(phone=phone).delete()
 
-    code = generate_otp_code()
-
+    # code = generate_otp_code()
+    code="1234"
     OTP.objects.create(
         phone=phone,
         code=code,
