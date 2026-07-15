@@ -173,3 +173,9 @@ SPECTACULAR_SETTINGS = {
 ESKIZ_EMAIL = config("ESKIZ_EMAIL")
 ESKIZ_PASSWORD = config("ESKIZ_PASSWORD")
 ESKIZ_SENDER = config("ESKIZ_SENDER")
+
+# OpenAI configuration (optional)
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+OPENAI_MODEL = config("OPENAI_MODEL", default="gpt-4o-mini")
+# Cache timeout for AI analysis (seconds)
+AI_SEARCH_CACHE_TIMEOUT = int(config("AI_SEARCH_CACHE_TIMEOUT", default="3600"))

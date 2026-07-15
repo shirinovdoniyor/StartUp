@@ -22,6 +22,7 @@ from .workshop_service_views import (
     workshop_service_detail,
     workshop_service_create, workshop_service_update, workshop_service_delete,
 )
+from .ai_views import ai_search_view
 
 
 urlpatterns = [
@@ -41,6 +42,7 @@ urlpatterns = [
     path("workshop-services/<uuid:id>/update/",workshop_service_update,),
     path("workshop-services/<uuid:id>/delete/", workshop_service_delete,),
     path("workshops/find/",find_workshops,name="find_workshops",),
+    path("search/ai/", ai_search_view, name="ai_search"),
 ]
 
 
