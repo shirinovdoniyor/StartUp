@@ -132,11 +132,6 @@ from .models import Service
 
 class ServiceSerializer(serializers.ModelSerializer):
 
-    problem_names = serializers.StringRelatedField(
-        source="problems",
-        many=True,
-        read_only=True,
-    )
 
     class Meta:
         model = Service
@@ -144,8 +139,6 @@ class ServiceSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
-            "problems",
-            "problem_names",
             "created_at",
             "updated_at",
         ]

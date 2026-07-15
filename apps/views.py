@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from .serializer import WorkshopSerializer, WorkshopPutSerializer, WorkshopPatchSerializer
-from rest_framework import  status
+from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from .models import Workshop
@@ -13,8 +13,6 @@ from .utils import get_coordinates
 from services.models import WorkshopService
 from reviews.models import Review
 from users.models import User
-from geopy.distance import geodesic
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 
 
 @extend_schema(

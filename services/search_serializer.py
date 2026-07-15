@@ -1,13 +1,7 @@
 from rest_framework import serializers
 
-from .models import Problem
-
 
 class FindWorkshopRequestSerializer(serializers.Serializer):
-
-    problem_id = serializers.PrimaryKeyRelatedField(
-        queryset=Problem.objects.all(),
-    )
 
 
     latitude = serializers.FloatField(

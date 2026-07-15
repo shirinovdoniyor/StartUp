@@ -22,6 +22,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 INSTALLED_APPS = [
+    'daphne',  # Must be first for Channels
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'services',
     'admin_panel',
     "django_filters",
+    'channels',
 
 ]
 
@@ -72,6 +74,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'root.wsgi.application'
+ASGI_APPLICATION = 'root.asgi.application'
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        # For production, use Redis:
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #     'hosts': [('127.0.0.1', 6379)],
+        # },
+    }
+}
 
 
 DATABASES = {
@@ -158,3 +173,9 @@ SPECTACULAR_SETTINGS = {
 ESKIZ_EMAIL = config("ESKIZ_EMAIL")
 ESKIZ_PASSWORD = config("ESKIZ_PASSWORD")
 ESKIZ_SENDER = config("ESKIZ_SENDER")
+
+# OpenAI configuration (optional)
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+OPENAI_MODEL = config("OPENAI_MODEL", default="gpt-4o-mini")
+# Cache timeout for AI analysis (seconds)
+AI_SEARCH_CACHE_TIMEOUT = int(config("AI_SEARCH_CACHE_TIMEOUT", default="3600"))

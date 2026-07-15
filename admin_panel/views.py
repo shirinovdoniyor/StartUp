@@ -7,12 +7,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
 
 from admin_panel.filters import AdminUserFilter
 from admin_panel.serializer import AdminUserSerializer, AdminUserUpdateSerializer, AdminWorkshopSerializer, \
     AdminWorkshopPatchSerializer
 from users.models import User
+from users.models import Notification
 from apps.models import Workshop
 from services.models import WorkshopService
 from reviews.models import Review
@@ -403,3 +405,59 @@ def admin_search(request):
         "workshops": list(workshops),
         "services": list(services),
     })
+
+
+@extend_schema(
+    tags=["Admin"],
+    summary="Send notification to all users",
+    request=inline_serializer(
+        name="BroadcastNotificationRequest",
+        fields={
+            "title": serializers.CharField(),
+            "message": serializers.CharField(),
+        },
+    ),
+)
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def admin_send_notification(request):
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    
+    title = request.data.get("title", "").strip()
+    message = request.data.get("message", "").strip()
+
+    if not title or not message:
+        return Response({"error": "title and message are required"}, status=400)
+
+    users = User.objects.filter(is_active=True)
+    channel_layer = get_channel_layer()
+    created_count = 0
+    
+    for user in users:
+        notification = Notification.objects.create(
+            user=user, 
+            title=title, 
+            message=message
+        )
+        created_count += 1
+        
+        # Broadcast via WebSocket
+        user_group_name = f"notifications_{user.id}"
+        async_to_sync(channel_layer.group_send)(
+            user_group_name,
+            {
+                "type": "notification_created",
+                "notification": {
+                    "id": str(notification.id),
+                    "title": notification.title,
+                    "message": notification.message,
+                    "created_at": notification.created_at.isoformat(),
+                },
+            },
+        )
+
+    return Response(
+        {"message": "Notification sent to all users", "count": created_count},
+        status=201,
+    )

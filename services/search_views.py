@@ -7,7 +7,6 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .models import (
-    Problem,
     WorkshopService,
 )
 from .search_serializer import WorkshopFindResponseSerializer, FindWorkshopRequestSerializer

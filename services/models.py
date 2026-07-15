@@ -3,8 +3,6 @@ import uuid
 from django.db import models
 from apps.models import Workshop
 
-
-
 class Service(models.Model):
     id = models.UUIDField(
         primary_key=True,

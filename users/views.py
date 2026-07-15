@@ -377,3 +377,120 @@ def change_phone_verify(request):
     return Response({
         "message": "Telefon raqam muvaffaqiyatli yangilandi."
     })
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Logout user",
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    refresh = request.data.get("refresh")
+    if refresh:
+        try:
+            RefreshToken(refresh).blacklist()
+        except Exception:
+            # Blacklist may not be enabled; ignore errors
+            pass
+
+    return Response({"message": "Successfully logged out."})
+
+
+# ==================== NOTIFICATIONS ====================
+
+@extend_schema(
+    tags=["Notifications"],
+    summary="Get all unread notifications",
+    responses={
+        200: inline_serializer(
+            name="NotificationListResponse",
+            fields={
+                "count": serializers.IntegerField(),
+                "notifications": serializers.ListField(
+                    child=inline_serializer(
+                        name="NotificationItem",
+                        fields={
+                            "id": serializers.CharField(),
+                            "title": serializers.CharField(),
+                            "message": serializers.CharField(),
+                            "created_at": serializers.DateTimeField(),
+                        }
+                    )
+                ),
+            },
+        )
+    },
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_notifications(request):
+    """Get all unread notifications for current user."""
+    notifications = request.user.notifications.filter(is_read=False).order_by("-created_at")
+    data = [
+        {
+            "id": str(n.id),
+            "title": n.title,
+            "message": n.message,
+            "created_at": n.created_at,
+        }
+        for n in notifications
+    ]
+    return Response({
+        "count": notifications.count(),
+        "notifications": data,
+    })
+
+
+@extend_schema(
+    tags=["Notifications"],
+    summary="Mark notification as read (deletes it)",
+    responses={200: inline_serializer(
+        name="NotificationReadResponse",
+        fields={"message": serializers.CharField()},
+    )},
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def mark_notification_read(request, notification_id):
+    """Mark notification as read and delete it."""
+    from .models import Notification
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            user=request.user,
+        )
+        notification.delete()
+        return Response({"message": "Notification deleted."})
+    except Notification.DoesNotExist:
+        return Response(
+            {"error": "Notification not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@extend_schema(
+    tags=["Notifications"],
+    summary="Delete a notification",
+    responses={200: inline_serializer(
+        name="NotificationDeleteResponse",
+        fields={"message": serializers.CharField()},
+    )},
+)
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, notification_id):
+    """Delete a notification."""
+    from .models import Notification
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            user=request.user,
+        )
+        notification.delete()
+        return Response({"message": "Notification deleted."})
+    except Notification.DoesNotExist:
+        return Response(
+            {"error": "Notification not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
