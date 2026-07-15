@@ -1,12 +1,4 @@
 from django.urls import path
-
-from .problem_views import (
-    problem_list,
-    problem_detail,
-    problem_create,
-    problem_update,
-    problem_delete,
-)
 from .search_views import find_workshops
 
 from .service_views import (
@@ -25,11 +17,6 @@ from .workshop_service_views import (
 
 
 urlpatterns = [
-    path("problems/", problem_list),
-    path("problems/<uuid:id>/", problem_detail),
-    path("problems/create/", problem_create),
-    path("problems/<uuid:id>/update/", problem_update),
-    path("problems/<uuid:id>/delete/", problem_delete),
     path("services/", service_list),
     path("services/<uuid:id>/", service_detail),
     path("services/create/", service_create),
