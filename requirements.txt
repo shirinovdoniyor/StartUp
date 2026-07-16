@@ -20,6 +20,7 @@ typing_extensions==4.15.0
 uritemplate==4.2.0
 python-decouple==3.8
 djangorestframework-simplejwt
+bcrypt
 psycopg
 requests
 gunicorn
