@@ -44,7 +44,7 @@ def send_otp(*, phone: str, purpose: str) -> None:
 
     otp_repository.invalidate_all(phone=phone, purpose=purpose)
     # code = _generate_code()
-    code = '1234'
+    code = '123456'
     otp_repository.create(
         phone=phone, raw_code=code, purpose=purpose, ttl_minutes=settings.OTP_TTL_MINUTES
     )
