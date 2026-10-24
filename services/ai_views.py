@@ -14,6 +14,10 @@ from .ai_search import AISearchService
     summary="AI semantic search",
     description="Accepts a user query/prompt, extracts intent with AI, then searches workshops from the database.",
 )
+
+
+
+
 @api_view(["POST"])
 def ai_search_view(request):
     serializer = AIRequestSerializer(data=request.data)
