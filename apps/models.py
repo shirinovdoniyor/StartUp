@@ -19,7 +19,9 @@ class Workshop(models.Model):
     updated_at = models.DateTimeField(auto_now=True,)
     longitude = models.FloatField(null=True, blank=True)
     latitude = models.FloatField(null=True, blank=True)
+
     is_active = models.BooleanField(default=True,)
+
 
     def __str__(self):
         return self.name
