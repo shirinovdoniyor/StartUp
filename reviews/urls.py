@@ -14,5 +14,7 @@ urlpatterns = [
     
     # Admin endpoints
     path('admin/reviews/', admin_reviews_list),
+
     path('admin/reviews/<uuid:review_id>/delete/', admin_delete_review),
+
 ]
