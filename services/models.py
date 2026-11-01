@@ -88,7 +88,7 @@ class WorkshopService(models.Model):
         related_name="workshops",
     )
 
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=3)
 
     def __str__(self):
         return f"{self.workshop.name} - {self.service.name}"
