@@ -67,6 +67,7 @@ class WorkshopPutSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
+        
 
 # ------------------------PATCH-------------------------------
 class WorkshopPatchSerializer(serializers.ModelSerializer):
